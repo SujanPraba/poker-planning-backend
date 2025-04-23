@@ -1,0 +1,1 @@
+{"version":3,"file":"jira.config.js","sourceRoot":"","sources":["../../src/config/jira.config.ts"],"names":[],"mappings":";;AAAA,2CAA4C;AAE5C,kBAAe,IAAA,mBAAU,EAAC,MAAM,EAAE,GAAG,EAAE,CAAC,CAAC;IACvC,IAAI,EAAE,OAAO,CAAC,GAAG,CAAC,SAAS,IAAI,kCAAkC;IACjE,QAAQ,EAAE,OAAO,CAAC,GAAG,CAAC,aAAa,IAAI,EAAE;IACzC,QAAQ,EAAE,OAAO,CAAC,GAAG,CAAC,cAAc,IAAI,EAAE;CAC3C,CAAC,CAAC,CAAC"}
