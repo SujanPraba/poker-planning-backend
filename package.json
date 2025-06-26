@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.4.0",
-    "@nestjs/config": "^2.3.2",
+    "@nestjs/config": "^2.3.4",
     "@nestjs/core": "^9.4.0",
     "@nestjs/jwt": "^10.1.0",
     "@nestjs/passport": "^9.0.3",
@@ -29,11 +29,14 @@
     "@nestjs/platform-socket.io": "^9.4.0",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^9.4.0",
+    "@rekog/mcp-nest": "^1.6.2",
     "@types/jira-client": "^7.1.9",
     "@types/node-fetch": "^2.6.12",
+    "axios": "^1.10.0",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.0",
+    "class-validator": "^0.14.2",
     "connect-typeorm": "^2.0.0",
+    "csv-stringify": "^6.5.2",
     "express-session": "^1.18.1",
     "jira-client": "^8.2.2",
     "node-fetch": "^2.7.0",
@@ -45,7 +48,8 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.6.1",
     "typeorm": "^0.3.20",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.4.0",

@@ -36,7 +36,7 @@ let SocketGateway = class SocketGateway {
                 votingSystem: payload.votingSystem,
                 username: payload.username,
             });
-            client.join(session.sessionId);
+            client.join(session.id);
             client.emit('session_created', session);
         }
         catch (error) {
@@ -50,8 +50,8 @@ let SocketGateway = class SocketGateway {
                 sessionId: payload.sessionId,
                 username: payload.username,
             });
-            client.join(session.sessionId);
-            this.server.to(session.sessionId).emit('session_updated', session);
+            client.join(session.id);
+            this.server.to(session.id).emit('session_updated', session);
             client.emit('session_joined', { session, user });
         }
         catch (error) {
@@ -82,7 +82,14 @@ let SocketGateway = class SocketGateway {
     async handleSubmitVote(client, payload) {
         try {
             const updatedSession = await this.sessionService.submitVote(payload.sessionId, payload.storyId, payload.userId, payload.vote);
-            this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+            const allVoted = updatedSession.participants.every(p => p.hasVoted);
+            if (allVoted) {
+                const sessionWithRevealedVotes = await this.sessionService.revealVotes(payload.sessionId);
+                this.server.to(payload.sessionId).emit('session_updated', sessionWithRevealedVotes);
+            }
+            else {
+                this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+            }
         }
         catch (error) {
             this.logger.error(`Error submitting vote: ${error.message}`);
@@ -126,12 +133,19 @@ let SocketGateway = class SocketGateway {
             }
             let timeLeft = payload.seconds;
             this.server.to(payload.sessionId).emit('timer_update', timeLeft);
-            this.timers[payload.sessionId] = setInterval(() => {
+            this.timers[payload.sessionId] = setInterval(async () => {
                 timeLeft--;
                 this.server.to(payload.sessionId).emit('timer_update', timeLeft);
                 if (timeLeft <= 0) {
                     clearInterval(this.timers[payload.sessionId]);
                     delete this.timers[payload.sessionId];
+                    try {
+                        const sessionWithRevealedVotes = await this.sessionService.revealVotes(payload.sessionId);
+                        this.server.to(payload.sessionId).emit('session_updated', sessionWithRevealedVotes);
+                    }
+                    catch (error) {
+                        this.logger.error(`Error revealing votes after timer: ${error.message}`);
+                    }
                 }
             }, 1000);
         }
@@ -146,15 +160,30 @@ let SocketGateway = class SocketGateway {
             if (!session) {
                 throw new Error(`Session with ID ${payload.sessionId} not found`);
             }
-            client.join(session.sessionId);
+            client.join(session.id);
             const user = session.participants.find(p => p.id === payload.userId);
             if (!user) {
                 throw new Error(`User not found in session`);
             }
+            this.server.to(session.id).emit('session_updated', session);
             client.emit('session_joined', { session, user });
         }
         catch (error) {
             this.logger.error(`Error rejoining session: ${error.message}`);
+            client.emit('error', error.message);
+        }
+    }
+    async handleLeaveSession(client, payload) {
+        try {
+            const updatedSession = await this.sessionService.removeParticipant(payload.sessionId, payload.userId);
+            client.leave(payload.sessionId);
+            if (updatedSession) {
+                this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+            }
+            client.emit('session_left');
+        }
+        catch (error) {
+            this.logger.error(`Error leaving session: ${error.message}`);
             client.emit('error', error.message);
         }
     }
@@ -224,6 +253,12 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], SocketGateway.prototype, "handleRejoinSession", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('leave_session'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
+], SocketGateway.prototype, "handleLeaveSession", null);
 exports.SocketGateway = SocketGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {

@@ -11,13 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Session = void 0;
 const typeorm_1 = require("typeorm");
+const story_entity_1 = require("./story.entity");
 let Session = class Session {
 };
 exports.Session = Session;
 __decorate([
-    (0, typeorm_1.PrimaryColumn)(),
+    (0, typeorm_1.Column)({ primary: true }),
     __metadata("design:type", String)
-], Session.prototype, "sessionId", void 0);
+], Session.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -27,17 +28,25 @@ __decorate([
     __metadata("design:type", String)
 ], Session.prototype, "votingSystem", void 0);
 __decorate([
+    (0, typeorm_1.Column)('json', { default: [] }),
+    __metadata("design:type", Array)
+], Session.prototype, "participants", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Session.prototype, "currentStoryId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
+    (0, typeorm_1.Column)('boolean', { default: false }),
+    __metadata("design:type", Boolean)
+], Session.prototype, "hasVotesRevealed", void 0);
+__decorate([
+    (0, typeorm_1.Column)('boolean', { default: false }),
     __metadata("design:type", Boolean)
 ], Session.prototype, "isVotingComplete", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Session.prototype, "hasVotesRevealed", void 0);
+    (0, typeorm_1.OneToMany)(() => story_entity_1.Story, story => story.session),
+    __metadata("design:type", Array)
+], Session.prototype, "stories", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

@@ -1,10 +1,12 @@
 declare const _default: (() => {
-    host: string;
-    username: string;
-    apiToken: string;
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    scopes: string[];
 }) & import("@nestjs/config").ConfigFactoryKeyHost<{
-    host: string;
-    username: string;
-    apiToken: string;
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    scopes: string[];
 }>;
 export default _default;

@@ -53,4 +53,8 @@ export declare class SocketGateway implements OnGatewayInit, OnGatewayConnection
         sessionId: string;
         userId: string;
     }): Promise<void>;
+    handleLeaveSession(client: Socket, payload: {
+        sessionId: string;
+        userId: string;
+    }): Promise<void>;
 }

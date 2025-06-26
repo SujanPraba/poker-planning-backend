@@ -15,72 +15,96 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JiraController = void 0;
 const common_1 = require("@nestjs/common");
 const jira_service_1 = require("./jira.service");
+const jira_guard_1 = require("./jira.guard");
 let JiraController = class JiraController {
     constructor(jiraService) {
         this.jiraService = jiraService;
     }
-    async getProjects() {
-        return this.jiraService.getAllProjects();
+    async getAuthUrl() {
+        return this.jiraService.getAuthUrl();
     }
-    async getUsers() {
-        return this.jiraService.getAllUsers();
+    async handleCallback(body) {
+        return this.jiraService.exchangeCodeForToken(body.code);
     }
-    async getStories(sprintId) {
-        return this.jiraService.getAllStoriesForSprint(sprintId);
+    async getInstances(req) {
+        return this.jiraService.getAccessibleResources(req.jiraToken);
     }
-    async getEpicStories(epicKey) {
-        return this.jiraService.getStoriesForEpic(epicKey);
+    async getProjects(cloudId, req) {
+        return this.jiraService.getProjects(cloudId, req.jiraToken);
     }
-    async getBoards(projectId) {
-        return this.jiraService.getBoardsForProject(projectId);
+    async getSprints(projectId, cloudId, req) {
+        return this.jiraService.getSprints(projectId, cloudId, req.jiraToken);
     }
-    async getSprints(boardId) {
-        return this.jiraService.getSprints(boardId);
+    async getStories(sprintId, cloudId, req) {
+        return this.jiraService.getStoriesFromSprint(sprintId, cloudId, req.jiraToken);
+    }
+    async handleJiraCallback(code, state) {
+        const userId = "1";
+        const tokenEntity = await this.jiraService.handleOAuthCallback(code, state, userId);
+        return { success: true, data: tokenEntity };
     }
 };
 exports.JiraController = JiraController;
 __decorate([
-    (0, common_1.Get)('projects'),
+    (0, common_1.Get)('auth/url'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], JiraController.prototype, "getAuthUrl", null);
+__decorate([
+    (0, common_1.Post)('auth/callback'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], JiraController.prototype, "handleCallback", null);
+__decorate([
+    (0, common_1.Get)('instances'),
+    (0, common_1.UseGuards)(jira_guard_1.JiraAuthGuard),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], JiraController.prototype, "getInstances", null);
+__decorate([
+    (0, common_1.Get)('projects'),
+    (0, common_1.UseGuards)(jira_guard_1.JiraAuthGuard),
+    __param(0, (0, common_1.Query)('cloudId')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], JiraController.prototype, "getProjects", null);
 __decorate([
-    (0, common_1.Get)('users'),
+    (0, common_1.Get)('sprints'),
+    (0, common_1.UseGuards)(jira_guard_1.JiraAuthGuard),
+    __param(0, (0, common_1.Query)('projectId')),
+    __param(1, (0, common_1.Query)('cloudId')),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
-], JiraController.prototype, "getUsers", null);
+], JiraController.prototype, "getSprints", null);
 __decorate([
     (0, common_1.Get)('stories'),
+    (0, common_1.UseGuards)(jira_guard_1.JiraAuthGuard),
     __param(0, (0, common_1.Query)('sprintId')),
+    __param(1, (0, common_1.Query)('cloudId')),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], JiraController.prototype, "getStories", null);
 __decorate([
-    (0, common_1.Get)('epic-stories'),
-    __param(0, (0, common_1.Query)('epicKey')),
+    (0, common_1.Get)('oauth/callback'),
+    __param(0, (0, common_1.Query)('code')),
+    __param(1, (0, common_1.Query)('state')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
-], JiraController.prototype, "getEpicStories", null);
-__decorate([
-    (0, common_1.Get)('boards'),
-    __param(0, (0, common_1.Query)('projectId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], JiraController.prototype, "getBoards", null);
-__decorate([
-    (0, common_1.Get)('sprints'),
-    __param(0, (0, common_1.Query)('boardId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], JiraController.prototype, "getSprints", null);
+], JiraController.prototype, "handleJiraCallback", null);
 exports.JiraController = JiraController = __decorate([
-    (0, common_1.Controller)('jira'),
+    (0, common_1.Controller)('api/jira'),
     __metadata("design:paramtypes", [jira_service_1.JiraService])
 ], JiraController);
 //# sourceMappingURL=jira.controller.js.map

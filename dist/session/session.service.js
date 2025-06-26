@@ -35,18 +35,19 @@ let SessionService = SessionService_1 = class SessionService {
         const sessionId = this.generateSessionId();
         const userId = (0, uuid_1.v4)();
         const session = await this.sessionRepository.save({
-            sessionId,
+            id: sessionId,
             name,
             votingSystem,
+            participants: [],
         });
         const user = await this.userRepository.save({
             id: userId,
             name: username,
             isHost: true,
             hasVoted: false,
-            sessionId: session.sessionId,
+            sessionId: session.id,
         });
-        return this.findBySessionId(session.sessionId);
+        return this.findBySessionId(session.id);
     }
     async join(joinSessionDto) {
         const { sessionId, username } = joinSessionDto;
@@ -60,13 +61,13 @@ let SessionService = SessionService_1 = class SessionService {
             name: username,
             isHost: false,
             hasVoted: false,
-            sessionId: session.sessionId,
+            sessionId: session.id,
         });
         return { session, user };
     }
     async findBySessionId(sessionId) {
         this.logger.log(`Finding session by ID: ${sessionId}`);
-        const session = await this.sessionRepository.findOne({ where: { sessionId } });
+        const session = await this.sessionRepository.findOne({ where: { id: sessionId } });
         if (!session)
             return null;
         const [stories, participants] = await Promise.all([
@@ -86,7 +87,7 @@ let SessionService = SessionService_1 = class SessionService {
             description,
             votes: {},
             finalEstimate: null,
-            sessionId: session.sessionId,
+            sessionId: session.id,
         });
         return this.findBySessionId(sessionId);
     }
@@ -201,7 +202,7 @@ let SessionService = SessionService_1 = class SessionService {
             };
         });
         return {
-            sessionId: session.sessionId,
+            sessionId: session.id,
             name: session.name,
             votingSystem: session.votingSystem,
             stories: processedStories,
@@ -214,6 +215,33 @@ let SessionService = SessionService_1 = class SessionService {
                 endTime: new Date(),
             },
         };
+    }
+    async removeParticipant(sessionId, userId) {
+        try {
+            const user = await this.userRepository.findOne({
+                where: { id: userId, sessionId: sessionId }
+            });
+            if (!user) {
+                this.logger.warn(`User ${userId} not found in session ${sessionId}`);
+                return this.findBySessionId(sessionId);
+            }
+            await this.userRepository.delete({ id: userId, sessionId: sessionId });
+            const remainingParticipants = await this.userRepository.find({ where: { sessionId } });
+            if (remainingParticipants.length === 0) {
+                await this.storyRepository.delete({ sessionId });
+                await this.sessionRepository.delete({ id: sessionId });
+                return null;
+            }
+            if (user.isHost && remainingParticipants.length > 0) {
+                const newHost = remainingParticipants[0];
+                await this.userRepository.update({ id: newHost.id }, { isHost: true });
+            }
+            return this.findBySessionId(sessionId);
+        }
+        catch (error) {
+            this.logger.error(`Error removing participant: ${error.message}`);
+            throw error;
+        }
     }
 };
 exports.SessionService = SessionService;

@@ -45,7 +45,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       });
 
       // Join the socket to a room with the session ID
-      client.join(session.sessionId);
+      client.join(session.id);
 
       // Send the created session back to the client
       client.emit('session_created', session);
@@ -64,10 +64,10 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       });
 
       // Join the socket to a room with the session ID
-      client.join(session.sessionId);
+      client.join(session.id);
 
       // Notify all clients in the room about the updated session
-      this.server.to(session.sessionId).emit('session_updated', session);
+      this.server.to(session.id).emit('session_updated', session);
 
       // Send the joined session back to the client
       client.emit('session_joined', { session, user });
@@ -120,8 +120,17 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         payload.vote,
       );
 
-      // Notify all clients in the room about the updated session
-      this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+      // Check if all participants have voted
+      const allVoted = updatedSession.participants.every(p => p.hasVoted);
+
+      // If everyone has voted, automatically reveal votes
+      if (allVoted) {
+        const sessionWithRevealedVotes = await this.sessionService.revealVotes(payload.sessionId);
+        this.server.to(payload.sessionId).emit('session_updated', sessionWithRevealedVotes);
+      } else {
+        // Otherwise just update with the new vote
+        this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+      }
     } catch (error) {
       this.logger.error(`Error submitting vote: ${error.message}`);
       client.emit('error', error.message);
@@ -185,16 +194,24 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.server.to(payload.sessionId).emit('timer_update', timeLeft);
 
       // Set up interval to count down
-      this.timers[payload.sessionId] = setInterval(() => {
+      this.timers[payload.sessionId] = setInterval(async () => {
         timeLeft--;
 
         // Emit updated time
         this.server.to(payload.sessionId).emit('timer_update', timeLeft);
 
-        // Clear interval when timer reaches 0
+        // When timer reaches 0, reveal votes and clear interval
         if (timeLeft <= 0) {
           clearInterval(this.timers[payload.sessionId]);
           delete this.timers[payload.sessionId];
+
+          // Automatically reveal votes when timer ends
+          try {
+            const sessionWithRevealedVotes = await this.sessionService.revealVotes(payload.sessionId);
+            this.server.to(payload.sessionId).emit('session_updated', sessionWithRevealedVotes);
+          } catch (error) {
+            this.logger.error(`Error revealing votes after timer: ${error.message}`);
+          }
         }
       }, 1000);
     } catch (error) {
@@ -212,7 +229,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
 
       // Join the socket to the session room
-      client.join(session.sessionId);
+      client.join(session.id);
 
       // Find the user in the session
       const user = session.participants.find(p => p.id === payload.userId);
@@ -220,10 +237,35 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         throw new Error(`User not found in session`);
       }
 
+      // Notify all clients in the room about the updated session
+      this.server.to(session.id).emit('session_updated', session);
+
       // Send the session data back to the client
       client.emit('session_joined', { session, user });
     } catch (error) {
       this.logger.error(`Error rejoining session: ${error.message}`);
+      client.emit('error', error.message);
+    }
+  }
+
+  @SubscribeMessage('leave_session')
+  async handleLeaveSession(client: Socket, payload: { sessionId: string; userId: string }) {
+    try {
+      // Remove user from the session
+      const updatedSession = await this.sessionService.removeParticipant(payload.sessionId, payload.userId);
+
+      // Leave the socket room
+      client.leave(payload.sessionId);
+
+      // Notify remaining clients about the update
+      if (updatedSession) {
+        this.server.to(payload.sessionId).emit('session_updated', updatedSession);
+      }
+
+      // Notify the leaving client
+      client.emit('session_left');
+    } catch (error) {
+      this.logger.error(`Error leaving session: ${error.message}`);
       client.emit('error', error.message);
     }
   }

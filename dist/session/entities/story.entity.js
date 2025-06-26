@@ -11,33 +11,42 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Story = void 0;
 const typeorm_1 = require("typeorm");
+const session_entity_1 = require("./session.entity");
 let Story = class Story {
 };
 exports.Story = Story;
 __decorate([
-    (0, typeorm_1.PrimaryColumn)(),
+    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
 ], Story.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], Story.prototype, "sessionId", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
 ], Story.prototype, "title", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
 ], Story.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: {} }),
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Story.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)('json'),
     __metadata("design:type", Object)
 ], Story.prototype, "votes", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Story.prototype, "finalEstimate", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => session_entity_1.Session, session => session.stories),
+    __metadata("design:type", session_entity_1.Session)
+], Story.prototype, "session", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Story.prototype, "sessionId", void 0);
 exports.Story = Story = __decorate([
     (0, typeorm_1.Entity)()
 ], Story);

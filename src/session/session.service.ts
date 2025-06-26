@@ -31,9 +31,10 @@ export class SessionService {
     const userId = uuidv4();
 
     const session = await this.sessionRepository.save({
-      sessionId,
+      id: sessionId,
       name,
       votingSystem,
+      participants: [],
     });
 
     const user = await this.userRepository.save({
@@ -41,10 +42,10 @@ export class SessionService {
       name: username,
       isHost: true,
       hasVoted: false,
-      sessionId: session.sessionId,
+      sessionId: session.id,
     });
 
-    return this.findBySessionId(session.sessionId);
+    return this.findBySessionId(session.id);
   }
 
   async join(joinSessionDto: JoinSessionDto): Promise<{ session: SessionWithRelations; user: User }> {
@@ -61,7 +62,7 @@ export class SessionService {
       name: username,
       isHost: false,
       hasVoted: false,
-      sessionId: session.sessionId,
+      sessionId: session.id,
     });
 
     return { session, user };
@@ -69,7 +70,7 @@ export class SessionService {
 
   async findBySessionId(sessionId: string): Promise<SessionWithRelations | null> {
     this.logger.log(`Finding session by ID: ${sessionId}`);
-    const session = await this.sessionRepository.findOne({ where: { sessionId } });
+    const session = await this.sessionRepository.findOne({ where: { id: sessionId } });
     if (!session) return null;
 
     const [stories, participants] = await Promise.all([
@@ -93,7 +94,7 @@ export class SessionService {
       description,
       votes: {},
       finalEstimate: null,
-      sessionId: session.sessionId,
+      sessionId: session.id,
     });
 
     return this.findBySessionId(sessionId);
@@ -251,7 +252,7 @@ export class SessionService {
     });
 
     return {
-      sessionId: session.sessionId,
+      sessionId: session.id,
       name: session.name,
       votingSystem: session.votingSystem as 'fibonacci' | 't-shirt',
       stories: processedStories,
@@ -264,5 +265,43 @@ export class SessionService {
         endTime: new Date(),
       },
     };
+  }
+
+  async removeParticipant(sessionId: string, userId: string): Promise<SessionWithRelations | null> {
+    try {
+      // Get the user before deleting
+      const user = await this.userRepository.findOne({
+        where: { id: userId, sessionId: sessionId }
+      });
+
+      if (!user) {
+        this.logger.warn(`User ${userId} not found in session ${sessionId}`);
+        return this.findBySessionId(sessionId);
+      }
+
+      // Delete the user
+      await this.userRepository.delete({ id: userId, sessionId: sessionId });
+
+      // Get remaining participants
+      const remainingParticipants = await this.userRepository.find({ where: { sessionId } });
+
+      // If this was the last participant, delete the session and all its stories
+      if (remainingParticipants.length === 0) {
+        await this.storyRepository.delete({ sessionId });
+        await this.sessionRepository.delete({ id: sessionId });
+        return null;
+      }
+
+      // If the leaving user was the host, assign host role to the next participant
+      if (user.isHost && remainingParticipants.length > 0) {
+        const newHost = remainingParticipants[0];
+        await this.userRepository.update({ id: newHost.id }, { isHost: true });
+      }
+
+      return this.findBySessionId(sessionId);
+    } catch (error) {
+      this.logger.error(`Error removing participant: ${error.message}`);
+      throw error;
+    }
   }
 }

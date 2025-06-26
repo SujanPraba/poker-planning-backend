@@ -9,20 +9,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SessionModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const session_controller_1 = require("./session.controller");
+const session_service_1 = require("./session.service");
 const session_entity_1 = require("./entities/session.entity");
 const story_entity_1 = require("./entities/story.entity");
 const user_entity_1 = require("./entities/user.entity");
-const session_controller_1 = require("./session.controller");
-const session_service_1 = require("./session.service");
 let SessionModule = class SessionModule {
 };
 exports.SessionModule = SessionModule;
 exports.SessionModule = SessionModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([session_entity_1.Session, story_entity_1.Story, user_entity_1.User])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([session_entity_1.Session, story_entity_1.Story, user_entity_1.User])
+        ],
         controllers: [session_controller_1.SessionController],
         providers: [session_service_1.SessionService],
-        exports: [session_service_1.SessionService],
+        exports: [typeorm_1.TypeOrmModule, session_service_1.SessionService]
     })
 ], SessionModule);
 //# sourceMappingURL=session.module.js.map

@@ -25,4 +25,5 @@ export declare class SessionService {
     nextStory(sessionId: string): Promise<SessionWithRelations>;
     private generateSessionId;
     generateSessionExport(sessionId: string): Promise<SessionExport>;
+    removeParticipant(sessionId: string, userId: string): Promise<SessionWithRelations | null>;
 }

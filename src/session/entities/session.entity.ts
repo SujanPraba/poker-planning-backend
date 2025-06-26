@@ -1,9 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import { Entity, Column, OneToMany, CreateDateColumn } from 'typeorm';
+import { Story } from './story.entity';
 
 @Entity()
 export class Session {
-  @PrimaryColumn()
-  sessionId: string;
+  @Column({ primary: true })
+  id: string;
 
   @Column()
   name: string;
@@ -11,14 +12,20 @@ export class Session {
   @Column()
   votingSystem: string;
 
+  @Column('json', { default: [] })
+  participants: any[];
+
   @Column({ nullable: true })
   currentStoryId: string;
 
-  @Column({ default: false })
+  @Column('boolean', { default: false })
+  hasVotesRevealed: boolean;
+
+  @Column('boolean', { default: false })
   isVotingComplete: boolean;
 
-  @Column({ default: false })
-  hasVotesRevealed: boolean;
+  @OneToMany(() => Story, story => story.session)
+  stories: Story[];
 
   @CreateDateColumn()
   createdAt: Date;

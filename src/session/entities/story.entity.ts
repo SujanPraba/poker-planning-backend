@@ -1,22 +1,29 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Session } from './session.entity';
 
 @Entity()
 export class Story {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column()
-  sessionId: string;
 
   @Column()
   title: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  @Column()
+  status: string;
+
+  @Column('json')
   votes: Record<string, string>;
 
   @Column({ nullable: true })
   finalEstimate: string;
+
+  @ManyToOne(() => Session, session => session.stories)
+  session: Session;
+
+  @Column()
+  sessionId: string;
 }
